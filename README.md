@@ -45,9 +45,6 @@ sqd process
 sqd serve
 ```
 
-Sure, here is a README.md file for your project:
-
-````markdown
 ## API
 
 ### ExchangeIn
@@ -158,6 +155,7 @@ query {
   }
 }
 ```
+
 ````
 
 ### Get Holder Details
@@ -196,3 +194,4 @@ query {
   }
 }
 ```
+````
