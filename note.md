@@ -1,0 +1,15 @@
+- exchange inflows (transfers to exchange hot wallets)
+  -- dayly +
+  -- monthly +
+  -- cummulative
+- exchange outflows (transfers from the exchange hot wallets)
+  -- dayly +
+  -- monthly +
+  -- cummulative
+- number of addresses with SQD
+  - number of shrimp addresses (1-1000) SQD
+  - number of goldfish addys
+  - dolphins
+  - whales
+    -- number of transfers daily
+    -- cummulative value of transfers daily (edited)

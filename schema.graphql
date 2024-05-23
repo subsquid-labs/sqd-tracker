@@ -1,0 +1,70 @@
+type ExchangeIn @entity {
+  id: ID!
+  block: BigInt!
+  hash: String!
+  date: DateTime!
+  from: String!
+  to: String!
+  amount: Float!
+}
+
+type ExchangeOut @entity {
+  id: ID!
+  block: BigInt!
+  hash: String!
+  date: DateTime!
+  from: String!
+  to: String!
+  amount: Float!
+}
+
+type DailyExchangeIn @entity {
+  id: ID!
+  date: String!
+  totalAmount: Float!
+}
+
+type MonthlyExchangeIn @entity {
+  id: ID!
+  date: String!
+  totalAmount: Float!
+}
+
+type DailyExchangeOut @entity {
+  id: ID!
+  date: String!
+  totalAmount: Float!
+}
+
+type MonthlyExchangeOut @entity {
+  id: ID!
+  date: String!
+  totalAmount: Float!
+}
+
+type CumulativeExchange @entity {
+  id: ID!
+  totalAmountIn: Float!
+  totalAmountOut: Float!
+}
+
+type DailyTransfers @entity {
+  id: ID!
+  date: String!
+  totalTransfers: Int!
+  totalAmount: Float!
+}
+
+type Holder @entity {
+  id: ID!
+  address: String!
+  balance: Float!
+  type: HolderType!
+}
+
+enum HolderType {
+  SHRIMP
+  GOLDFISH
+  DOLPHIN
+  WHALE
+}
