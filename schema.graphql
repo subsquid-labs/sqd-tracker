@@ -62,6 +62,16 @@ type Holder @entity {
   type: HolderType!
 }
 
+type Transfer @entity {
+  id: ID!
+  block: BigInt!
+  hash: String!
+  date: DateTime!
+  from: String!
+  to: String!
+  amount: Float!
+}
+
 enum HolderType {
   SHRIMP
   GOLDFISH

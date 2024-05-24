@@ -16,3 +16,6 @@ export function trimDateDay(date: Date): string {
 export function trimDateMonth(date: Date): string {
   return date.toISOString().split("T")[0].substring(0, 7);
 }
+export function trimStringMonth(date: string): string {
+  return date.substring(0, 7);
+}

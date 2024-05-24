@@ -9,6 +9,7 @@ import {
   ExchangeOut,
   Holder,
   HolderType,
+  Transfer as TransferEntity,
 } from "./model";
 import { processor } from "./processor";
 import { wallets } from "./wallets";
@@ -26,7 +27,7 @@ enum RecordType {
 }
 
 type Transfer = ExchangeIn | ExchangeOut;
-type DatedRecord =
+export type DatedRecord =
   | DailyExchangeIn
   | MonthlyExchangeIn
   | DailyExchangeOut
@@ -38,6 +39,8 @@ type HolderOp = {
   isNegative: boolean;
 };
 
+type ExchangeRecord = ExchangeIn | ExchangeOut;
+
 processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
   let cumulative = await createOrGetCumulativeRecord(ctx);
   let holders = new Map<string, Holder>();
@@ -45,12 +48,24 @@ processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
   let dailyOuts = new Map<string, DatedRecord>();
   let monthlyIns = new Map<string, DatedRecord>();
   let monthlyOuts = new Map<string, DatedRecord>();
+  let transfers: TransferEntity[] = [];
   let holderOps: HolderOp[] = [];
   let exchangeIns = [];
   let exchangeOuts = [];
   for (let c of ctx.blocks) {
     for (let log of c.logs) {
       let { from, to, value } = sqdAbi.events.Transfer.decode(log);
+      // save all transfers
+      let transfer: TransferEntity = new TransferEntity({
+        id: log.id,
+        from,
+        to,
+        block: BigInt(c.header.height),
+        amount: Number(value / BigInt(10 ** DECIMALS)),
+        hash: log.transactionHash,
+        date: new Date(c.header.timestamp),
+      });
+      transfers.push(transfer);
       //exchange In
       if (log.address == SQD_CONTRACT && wallets.has(to)) {
         let exchangeIn = new ExchangeIn(processTransfer(log, c));
@@ -75,6 +90,7 @@ processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
       (sum, exchangeIn) => sum + exchangeIn.amount,
       0
     );
+    cumulative.totalAmountIn += totalAmountIn;
 
     //total amountOut for these logs
 
@@ -82,7 +98,9 @@ processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
       (sum, exchangeOut) => sum + exchangeOut.amount,
       0
     );
+    cumulative.totalAmountOut += totalAmountOut;
   }
+
   //resolve dailyIns
   dailyIns = await resolveDailyIns(exchangeIns, dailyIns, ctx);
   //resolve dailyOuts
@@ -95,6 +113,7 @@ processor.run(new TypeormDatabase({ supportHotBlocks: true }), async (ctx) => {
   await ctx.store.upsert(exchangeIns);
   await ctx.store.upsert(exchangeOuts);
   await ctx.store.upsert(cumulative);
+  await ctx.store.upsert(transfers);
   await ctx.store.upsert([...dailyIns.values()]);
   await ctx.store.upsert([...dailyOuts.values()]);
   await ctx.store.upsert([...monthlyIns.values()]);
@@ -118,7 +137,7 @@ function processTransfer(log: Log, c: BlockData): Transfer {
   let { from, to, value } = sqdAbi.events.Transfer.decode(log);
   let amountNum = Number(value / BigInt(10 ** DECIMALS));
   let transfer: Transfer = {
-    id: log.id,
+    id: log.transactionHash,
     from,
     to,
     block: BigInt(c.header.height),
@@ -197,7 +216,7 @@ async function resolveHolders(
   return holders;
 }
 
-async function resolveDailyIns(
+/* async function resolveDailyIns(
   exchangeIns: ExchangeIn[],
   dailyIns: Map<string, DatedRecord>,
   ctx: DataHandlerContext<Store>
@@ -225,9 +244,9 @@ async function resolveDailyIns(
     dailyIns.set(dailyIn.date, dailyIn);
   }
   return dailyIns;
-}
+} */
 
-async function resolveDailyOuts(
+/* async function resolveDailyOuts(
   exchangeOuts: ExchangeOut[],
   dailyOuts: Map<string, DatedRecord>,
   ctx: DataHandlerContext<Store>
@@ -256,6 +275,115 @@ async function resolveDailyOuts(
     dailyOuts.set(dailyOut.date, dailyOut);
   }
   return dailyOuts;
+} */
+
+// async function resolveMonthlyIns(
+//   dailyIns: Map<string, DatedRecord>,
+//   monthlyIns: Map<string, DatedRecord>,
+//   ctx: DataHandlerContext<Store>
+// ) {
+//   let dates = Array.from(dailyIns.keys()).map((date) => trimStringMonth(date));
+//   let existingMonthlyIns = await ctx.store
+//     .find(MonthlyExchangeIn, {
+//       where: {
+//         date: In(dates),
+//       },
+//     })
+//     .then(
+//       (monthlyIns) =>
+//         new Map(monthlyIns.map((monthlyIn) => [monthlyIn.date, monthlyIn])) // Change the type of 'monthlyIns' to 'MonthlyExchangeIn[]'
+//     );
+//   for (let dailyIn of dailyIns.values()) {
+//     let monthlyIn = existingMonthlyIns.get(trimStringMonth(dailyIn.date));
+//     if (!monthlyIn) {
+//       monthlyIn = new MonthlyExchangeIn({
+//         id: dailyIn.date,
+//         date: dailyIn.date,
+//         totalAmount: 0,
+//       });
+//     }
+//     monthlyIn.totalAmount += dailyIn.totalAmount;
+//     monthlyIns.set(monthlyIn.date, monthlyIn);
+//   }
+//   return monthlyIns;
+// }
+
+// async function resolveMonthlyOuts(
+//   dailyOuts: Map<string, DatedRecord>,
+//   monthlyOuts: Map<string, DatedRecord>,
+//   ctx: DataHandlerContext<Store>
+// ) {
+//   let dates = Array.from(dailyOuts.keys()).map((date) => trimStringMonth(date));
+//   let existingMonthlyOuts = await ctx.store
+//     .find(MonthlyExchangeOut, {
+//       where: {
+//         date: In(dates),
+//       },
+//     })
+//     .then(
+//       (monthlyOuts) =>
+//         new Map(monthlyOuts.map((monthlyOut) => [monthlyOut.date, monthlyOut])) // Change the type of 'monthlyOuts' to 'MonthlyExchangeOut[]'
+//     );
+//   for (let dailyOut of dailyOuts.values()) {
+//     let monthlyOut = existingMonthlyOuts.get(trimStringMonth(dailyOut.date));
+//     if (!monthlyOut) {
+//       monthlyOut = new MonthlyExchangeOut({
+//         id: dailyOut.date,
+//         date: dailyOut.date,
+//         totalAmount: 0,
+//       });
+//     }
+//     monthlyOut.totalAmount += dailyOut.totalAmount;
+//     monthlyOuts.set(monthlyOut.date, monthlyOut);
+//   }
+//   return monthlyOuts;
+// }
+
+// function trimStringMonth(date: string): string {
+//   return date.substring(0, 7);
+// }
+
+async function resolveMonthlyRecords<T extends DatedRecord>(
+  dailyRecords: Map<string, DatedRecord>,
+  monthlyRecords: Map<string, DatedRecord>,
+  modelType: typeof MonthlyExchangeIn | typeof MonthlyExchangeOut, // Adjust the types accordingly
+  ctx: DataHandlerContext<Store>
+): Promise<Map<string, DatedRecord>> {
+  const dates = Array.from(dailyRecords.keys()).map((date) =>
+    trimStringMonth(date)
+  );
+  const existingMonthlyRecords = await ctx.store
+    .find(modelType, {
+      where: {
+        date: In(dates),
+      },
+    })
+    .then(
+      (monthlyRecords) =>
+        new Map(
+          monthlyRecords.map((monthlyRecord) => [
+            monthlyRecord.date,
+            monthlyRecord,
+          ])
+        ) // Change the type of 'monthlyRecords' to 'MonthlyExchangeIn[]' or 'MonthlyExchangeOut[]'
+    );
+
+  for (const dailyRecord of dailyRecords.values()) {
+    let monthlyRecord = existingMonthlyRecords.get(
+      trimStringMonth(dailyRecord.date)
+    );
+    if (!monthlyRecord) {
+      monthlyRecord = new modelType({
+        id: dailyRecord.date,
+        date: dailyRecord.date,
+        totalAmount: 0,
+      }) as T; // Cast to T
+    }
+    monthlyRecord.totalAmount += dailyRecord.totalAmount;
+    monthlyRecords.set(monthlyRecord.date, monthlyRecord);
+  }
+
+  return monthlyRecords;
 }
 
 async function resolveMonthlyIns(
@@ -263,30 +391,7 @@ async function resolveMonthlyIns(
   monthlyIns: Map<string, DatedRecord>,
   ctx: DataHandlerContext<Store>
 ) {
-  let dates = Array.from(dailyIns.keys()).map((date) => trimStringMonth(date));
-  let existingMonthlyIns = await ctx.store
-    .find(MonthlyExchangeIn, {
-      where: {
-        date: In(dates),
-      },
-    })
-    .then(
-      (monthlyIns) =>
-        new Map(monthlyIns.map((monthlyIn) => [monthlyIn.date, monthlyIn])) // Change the type of 'monthlyIns' to 'MonthlyExchangeIn[]'
-    );
-  for (let dailyIn of dailyIns.values()) {
-    let monthlyIn = existingMonthlyIns.get(trimStringMonth(dailyIn.date));
-    if (!monthlyIn) {
-      monthlyIn = new MonthlyExchangeIn({
-        id: dailyIn.date,
-        date: dailyIn.date,
-        totalAmount: 0,
-      });
-    }
-    monthlyIn.totalAmount += dailyIn.totalAmount;
-    monthlyIns.set(monthlyIn.date, monthlyIn);
-  }
-  return monthlyIns;
+  return resolveMonthlyRecords(dailyIns, monthlyIns, MonthlyExchangeIn, ctx);
 }
 
 async function resolveMonthlyOuts(
@@ -294,32 +399,59 @@ async function resolveMonthlyOuts(
   monthlyOuts: Map<string, DatedRecord>,
   ctx: DataHandlerContext<Store>
 ) {
-  let dates = Array.from(dailyOuts.keys()).map((date) => trimStringMonth(date));
-  let existingMonthlyOuts = await ctx.store
-    .find(MonthlyExchangeOut, {
+  return resolveMonthlyRecords(dailyOuts, monthlyOuts, MonthlyExchangeOut, ctx);
+}
+
+function trimStringMonth(date: string): string {
+  return date.substring(0, 7);
+}
+
+async function resolveDailyRecords<T extends DatedRecord>(
+  exchangeRecords: ExchangeRecord[],
+  dailyRecords: Map<string, DatedRecord>,
+  modelType: typeof DailyExchangeIn | typeof DailyExchangeOut, // Adjust the types accordingly
+  ctx: DataHandlerContext<Store>
+): Promise<Map<string, DatedRecord>> {
+  const dates = exchangeRecords.map((exchange) => trimDateDay(exchange.date));
+  const existingDailyRecords = await ctx.store
+    .find(modelType, {
       where: {
         date: In(dates),
       },
     })
     .then(
-      (monthlyOuts) =>
-        new Map(monthlyOuts.map((monthlyOut) => [monthlyOut.date, monthlyOut])) // Change the type of 'monthlyOuts' to 'MonthlyExchangeOut[]'
+      (dailyRecords) =>
+        new Map(dailyRecords.map((record) => [record.date, record])) // Change the type of 'dailyRecords' to 'DailyExchangeIn[]' or 'DailyExchangeOut[]'
     );
-  for (let dailyOut of dailyOuts.values()) {
-    let monthlyOut = existingMonthlyOuts.get(trimStringMonth(dailyOut.date));
-    if (!monthlyOut) {
-      monthlyOut = new MonthlyExchangeOut({
-        id: dailyOut.date,
-        date: dailyOut.date,
+
+  for (const exchange of exchangeRecords) {
+    let dailyRecord = existingDailyRecords.get(trimDateDay(exchange.date));
+    if (!dailyRecord) {
+      dailyRecord = new modelType({
+        id: trimDateDay(exchange.date),
+        date: trimDateDay(exchange.date),
         totalAmount: 0,
-      });
+      }) as T; // Cast to T
     }
-    monthlyOut.totalAmount += dailyOut.totalAmount;
-    monthlyOuts.set(monthlyOut.date, monthlyOut);
+    dailyRecord.totalAmount += exchange.amount;
+    dailyRecords.set(dailyRecord.date, dailyRecord);
   }
-  return monthlyOuts;
+
+  return dailyRecords;
 }
 
-function trimStringMonth(date: string): string {
-  return date.substring(0, 7);
+async function resolveDailyIns(
+  exchangeIns: ExchangeIn[],
+  dailyIns: Map<string, DatedRecord>,
+  ctx: DataHandlerContext<Store>
+) {
+  return resolveDailyRecords(exchangeIns, dailyIns, DailyExchangeIn, ctx);
+}
+
+async function resolveDailyOuts(
+  exchangeOuts: ExchangeOut[],
+  dailyOuts: Map<string, DatedRecord>,
+  ctx: DataHandlerContext<Store>
+) {
+  return resolveDailyRecords(exchangeOuts, dailyOuts, DailyExchangeOut, ctx);
 }

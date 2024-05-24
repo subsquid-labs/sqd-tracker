@@ -1,5 +1,5 @@
-module.exports = class Data1716474477139 {
-    name = 'Data1716474477139'
+module.exports = class Data1716552590243 {
+    name = 'Data1716552590243'
 
     async up(db) {
         await db.query(`CREATE TABLE "exchange_in" ("id" character varying NOT NULL, "block" numeric NOT NULL, "hash" text NOT NULL, "date" TIMESTAMP WITH TIME ZONE NOT NULL, "from" text NOT NULL, "to" text NOT NULL, "amount" numeric NOT NULL, CONSTRAINT "PK_369252a99a644b8da54eb9936ad" PRIMARY KEY ("id"))`)
@@ -11,6 +11,7 @@ module.exports = class Data1716474477139 {
         await db.query(`CREATE TABLE "cumulative_exchange" ("id" character varying NOT NULL, "total_amount_in" numeric NOT NULL, "total_amount_out" numeric NOT NULL, CONSTRAINT "PK_3c8839874ebd18f3f71387ddd81" PRIMARY KEY ("id"))`)
         await db.query(`CREATE TABLE "daily_transfers" ("id" character varying NOT NULL, "date" text NOT NULL, "total_transfers" integer NOT NULL, "total_amount" numeric NOT NULL, CONSTRAINT "PK_9f72e24a0970a6d7c20c211aaa3" PRIMARY KEY ("id"))`)
         await db.query(`CREATE TABLE "holder" ("id" character varying NOT NULL, "address" text NOT NULL, "balance" numeric NOT NULL, "type" character varying(8) NOT NULL, CONSTRAINT "PK_8266ed18d931b168de2723ad322" PRIMARY KEY ("id"))`)
+        await db.query(`CREATE TABLE "transfer" ("id" character varying NOT NULL, "block" numeric NOT NULL, "hash" text NOT NULL, "date" TIMESTAMP WITH TIME ZONE NOT NULL, "from" text NOT NULL, "to" text NOT NULL, "amount" numeric NOT NULL, CONSTRAINT "PK_fd9ddbdd49a17afcbe014401295" PRIMARY KEY ("id"))`)
     }
 
     async down(db) {
@@ -23,5 +24,6 @@ module.exports = class Data1716474477139 {
         await db.query(`DROP TABLE "cumulative_exchange"`)
         await db.query(`DROP TABLE "daily_transfers"`)
         await db.query(`DROP TABLE "holder"`)
+        await db.query(`DROP TABLE "transfer"`)
     }
 }
