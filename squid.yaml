@@ -16,3 +16,5 @@ deploy:
     cmd:
       - sqd
       - serve:prod
+scale:
+  dedicated: true

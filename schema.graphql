@@ -42,10 +42,15 @@ type MonthlyExchangeOut @entity {
   totalAmount: Float!
 }
 
-type CumulativeExchange @entity {
+type CumulativeStats @entity {
   id: ID!
-  totalAmountIn: Float!
-  totalAmountOut: Float!
+  totalExchangeAmountIn: Float!
+  totalExchangeAmountOut: Float!
+  totalTransfersAmount: Float!
+  shrimpCount: Int!
+  goldfishCount: Int!
+  dolphinCount: Int!
+  whaleCount: Int!
 }
 
 type DailyTransfers @entity {
@@ -77,4 +82,12 @@ enum HolderType {
   GOLDFISH
   DOLPHIN
   WHALE
+}
+
+type HolderCounts @entity {
+  id: ID!
+  shrimp: Int!
+  goldfish: Int!
+  dolphin: Int!
+  whale: Int!
 }
