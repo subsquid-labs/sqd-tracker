@@ -7,9 +7,9 @@ This squid tracks SQD token on Arbitrum One.
 The requested data is transformed in batches by a single handler provided to the `processor.run()` method.
 
 For a full list of supported networks and config options,
-check the [`EvmBatchProcessor` overview](https://docs.subsquid.io/evm-indexing/evm-processor/) and the [setup section](https://docs.subsquid.io/evm-indexing/configuration/).
+check the [`EvmBatchProcessor` overview](https://docs.sqd.dev/en/sdk) and the [setup section](https://docs.sqd.dev/en/sdk).
 
-For a step-by-step migration guide from TheGraph, see [the dedicated docs page](https://docs.subsquid.io/migrate/migrate-subgraph/).
+For a step-by-step migration guide from TheGraph, see [the dedicated docs page](https://docs.sqd.dev/en/sdk).
 
 Dependencies: Node.js v16 or newer, Git, Docker.
 
